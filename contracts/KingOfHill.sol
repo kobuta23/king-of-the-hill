@@ -7,32 +7,29 @@ import { SuperTokenV1Library } from "@superfluid-finance/ethereum-contracts/cont
 
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 
-import {SuperAppBase} from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
+import {SuperAppBaseFlow} from "./SuperAppBaseFlow.sol";
+
+import { IERC1820Registry } from "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
+import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
+
 import "hardhat/console.sol";
 
 /// @title KingOfTheHill
 /// @author Perthi
-contract KingOfHill is SuperAppBase {
+contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
 
     /// @notice Importing the SuperToken Library to make working with streams easy.
     using SuperTokenV1Library for ISuperToken;
     // ---------------------------------------------------------------------------------------------
     // STORAGE & IMMUTABLES
 
-    /// @notice Constant used for initialization of CFAv1 and for callback modifiers.
-    bytes32 public constant CFA_ID =
-        keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
+    /// @notice Constant used for ERC777.
 
-    /// @notice Superfluid Host.
-    ISuperfluid public immutable host;
+    IERC1820Registry constant internal _ERC1820_REG = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
-    /// @notice Token coming in.
+    /// @notice Token coming in and token going out
     ISuperToken public immutable cashToken;
-
-    /// @notice Token coming in.
-    ISuperToken public immutable gameToken;
-
-    /// @notice the current price of gameToken, expressed in cashTokens.
+    ISuperToken public immutable armyToken;
 
     /// @notice the last time the rate changed
     uint256 immutable initialTime;
@@ -41,68 +38,57 @@ contract KingOfHill is SuperAppBase {
     /// @notice the rate of decay of the exchange rate, expressed in wei/second.
     int96 public decay;
 
+    /// @notice the step in the army auction. How much bigger than previous should it be?
+    uint256 public STEP;
+
     /// @notice the current king of the hill
     address public king;
-
-    // ---------------------------------------------------------------------------------------------
-    //MODIFIERS
-
-    /// @dev checks that only the CFA is being used
-    ///@param agreementClass the address of the agreement which triggers callback
-    function _isCFAv1(address agreementClass) private view returns (bool) {
-        return ISuperAgreement(agreementClass).agreementType() == CFA_ID;
-    }
-
-    ///@dev checks that only the cashToken is used when sending streams into this contract
-    ///@param superToken the token being streamed into the contract
-    function _isAcceptedToken(ISuperToken superToken) private view returns (bool) {
-        return address(superToken) == address(cashToken) || address(superToken) == address(gameToken);
-    }
-
-    ///@dev ensures that only the host can call functions where this is implemented
-    //for usage in callbacks only
-    modifier onlyHost() {
-        require(msg.sender == address(host), "Only host can call callback");
-        _;
-    }
-
-    ///@dev used to implement _isAcceptedToken and _isCFAv1 modifiers
-    ///@param superToken used when sending streams into contract to trigger callbacks
-    ///@param agreementClass the address of the agreement which triggers callback
-    modifier onlyExpected(ISuperToken superToken, address agreementClass) {
-        require(_isAcceptedToken(superToken), "RedirectAll: not accepted token");
-        require(_isCFAv1(agreementClass), "RedirectAll: only CFAv1 supported");
-        _;
-    }
+    uint256 public army;
 
     constructor(
         ISuperToken _cashToken, // super token to be used in borrowing
-        ISuperToken _gameToken, // super token to be used in borrowing
+        ISuperToken _armyToken, // super token to be used in borrowing
         int96 _decay
+    ) SuperAppBaseFlow(
+        ISuperfluid(_cashToken.getHost()), 
+        true, 
+        true, 
+        true
     ) {
-        gameToken = _gameToken;
+        armyToken = _armyToken;
         cashToken = _cashToken;
-        host = ISuperfluid(_cashToken.getHost());
         initialRate = 1e18;
+        STEP = 0; 
         decay = _decay;
         initialTime = block.timestamp;
         king = msg.sender;
 
-        // super app registration
-        uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
-            SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
-
-        // Using host.registerApp because we are using testnet. If you would like to deploy to
-        // mainnet, this process will work differently. You'll need to use registerAppWithKey or
-        // registerAppByFactory.
-        // https://github.com/superfluid-finance/protocol-monorepo/wiki/Super-App-White-listing-Guide
-        host.registerApp(configWord);
+        bytes32 erc777TokensRecipientHash = keccak256("ERC777TokensRecipient");
+        _ERC1820_REG.setInterfaceImplementer(address(this), erc777TokensRecipientHash, address(this));
     }
 
-    function rate(int96 cashFlowRate) public returns (int96) {
-        return cashFlowRate * (initialRate - int96(int256(block.timestamp - initialTime)) * decay) / 1e18;
+    // ---------------------------------------------------------------------------------------------
+    // UTILITY FUNCTIONS
+    // ---------------------------------------------------------------------------------------------
+
+    function taxRate() public returns (int96){
+        return cashToken.getFlowRate(address(this), king);
+    }
+
+    function _rate() internal returns (int96){
+        return initialRate - int96(int256(block.timestamp - initialTime)) * decay;
+    }
+
+    function rate() public returns (int96) {
+        return _rate();
+    }
+
+    function rate(address user) public returns (int96){
+        return armyToken.getFlowRate(address(this), user) / cashToken.getFlowRate(user, address(this));
+    }
+
+    function armyFlowRate(int96 cashFlowRate) internal returns (int96) {
+        return cashFlowRate * _rate() / 1e18;
     }
 
     function _totalTaxMinusFee() internal view returns (int96){
@@ -111,103 +97,85 @@ contract KingOfHill is SuperAppBase {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // FUNCTIONS & CORE LOGIC
+    // BECOMING KING
+    // ---------------------------------------------------------------------------------------------
 
+    // IERC777Recipient
+    function tokensReceived(
+        address /*operator*/,
+        address from,
+        address /*to*/,
+        uint256 amount,
+        bytes calldata /*userData*/,
+        bytes calldata /*operatorData*/
+    ) override external {
+        // if it's not a SuperToken, something will revert along the way
+        require(ISuperToken(msg.sender) == armyToken, "Please send the right token!");
+        _claim(from, amount);
+    }
 
+    function claim(uint256 amount) public{
+        armyToken.transferFrom(msg.sender, address(this), amount);
+        _claim(msg.sender, amount);
+    }
+
+    function _claim(address newKing, uint256 newArmy) internal {
+        // user sends army to the hill (armyToken)
+        // if their army is bigger they become king
+        // claim treasure and ongoing taxes
+        require(newArmy > (army + STEP), "send more money");
+        // replace the king
+        int96 cashOutflow = cashToken.getFlowRate(address(this), king);
+        cashToken.deleteFlow(address(this), king);
+        cashToken.createFlow(newKing, cashOutflow);
+
+        // send newKing the treasure
+        cashToken.transfer(newKing, cashToken.balanceOf(address(this)));
+        // crown new king
+        king = newKing;
+    }
 
     // ---------------------------------------------------------------------------------------------
     // SUPER APP CALLBACKS
+    // ---------------------------------------------------------------------------------------------
 
-    /// @dev super app after agreement created callback
-    function afterAgreementCreated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32, // _agreementId,
-        bytes calldata _agreementData,
-        bytes calldata, // _cbdata,
+    /// @dev super app callback triggered after user sends stream to contract
+    function afterFlowCreated(
+        ISuperToken superToken,
+        address sender,
+        bytes calldata /*beforeData*/,
         bytes calldata ctx
-    )
-        external
-        override
-        onlyExpected(_superToken, _agreementClass)
-        onlyHost
-        returns (bytes memory newCtx)
-    {
-        newCtx = ctx;
-        (address sender, ) = abi.decode(_agreementData, (address, address));
-        if(_superToken == cashToken){
-            // user is streaming in cashToken, send him back Game
-            newCtx = gameToken.createFlowWithCtx(sender, rate(cashToken.getFlowRate(sender,address(this))), newCtx);
-            // update stream to king
-            if(cashToken.getFlowRate(address(this), king) == 0){
-                newCtx = cashToken.createFlowWithCtx(king, _totalTaxMinusFee(), newCtx);
-            } else {
-                newCtx = cashToken.updateFlowWithCtx(king, _totalTaxMinusFee(), newCtx);
-            }
-        } else {
-            // user is streaming in gameToken, check if they're streaming more than previous user
-            // if they are, send him the treasure
-            // then redirect the taxes to them 
-            require(gameToken.getFlowRate(sender, address(this)) > gameToken.getFlowRate(king, address(this)), "send more you pleb");
-            if(gameToken.getFlowRate(king, address(this)) > 0)
-                newCtx = gameToken.deleteFlowWithCtx(king, address(this), newCtx);
-            int96 cashOutflow = cashToken.getFlowRate(address(this), king);
-            newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx);
-            // now create the cashOutflow for the new king
-            newCtx = cashToken.createFlowWithCtx(sender, cashOutflow, newCtx);
-            // send them the treasure
-            cashToken.transfer(sender, cashToken.balanceOf(address(this)));
-            // and crown him
-            king = sender;
-        }
+    ) internal override returns (bytes memory newCtx) {
+        // user is streaming in cashToken, send him back armyToken
+        newCtx = armyToken.createFlowWithCtx(sender, armyFlowRate(cashToken.getFlowRate(sender,address(this))), ctx);
+        // adjust (up) stream to king
+        cashToken.getFlowRate(address(this), king) == 0
+            ? newCtx = cashToken.createFlowWithCtx(king, _totalTaxMinusFee(), newCtx)
+            : newCtx = cashToken.updateFlowWithCtx(king, _totalTaxMinusFee(), newCtx);
     }
 
-    /// @dev super app after agreement updated callback
-    function afterAgreementUpdated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32, // _agreementId,
-        bytes calldata, /*_agreementData*/
-        bytes calldata, // _cbdata,
-        bytes calldata //ctx
-    )
-        external
-        view
-        override
-        onlyExpected(_superToken, _agreementClass)
-        onlyHost
-        returns (bytes memory)
-    {
+    function afterFlowUpdated(
+        ISuperToken /*superToken*/,
+        address /*sender*/,
+        bytes calldata /*beforeData*/,
+        bytes calldata /*ctx*/
+    ) internal override returns (bytes memory /*newCtx*/) {
         revert("can't update sorry bye");
     }
 
-    /// @dev super app after agreement terminated callback
-    function afterAgreementTerminated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32, // _agreementId,
-        bytes calldata _agreementData,
-        bytes calldata, // _cbdata,
+    function afterFlowDeleted(
+        ISuperToken /*superToken*/,
+        address sender,
+        address /*receiver*/,
+        bytes calldata /*beforeData*/,
         bytes calldata ctx
-    ) external override onlyHost returns (bytes memory newCtx) {
-        if (!_isCFAv1(_agreementClass) || !_isAcceptedToken(_superToken)) {
-            return ctx;
-        }
-        newCtx = ctx;
-        (address sender, ) = abi.decode(_agreementData, (address, address));
-        if(_superToken == cashToken){
-            // user stopped streaming in cashToken, close the gameToken stream
-            newCtx = gameToken.deleteFlowWithCtx(address(this), sender, newCtx);
-            // adjust (down) stream to king
-            int96 taxRate = _totalTaxMinusFee();
-            taxRate == 0
-                ? newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx)
-                : newCtx = cashToken.updateFlowWithCtx(king, taxRate, newCtx);
-        } else {
-            // king stopped streaming in gameTokens. Stop sending them cashToken
-            newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx);
-            // and remove their crown
-            king = address(0);
-        }
+    ) internal override returns (bytes memory newCtx) {
+        // user stopped streaming in cashToken, close the armyToken stream
+        newCtx = armyToken.deleteFlowWithCtx(address(this), sender, ctx);
+        // adjust (down) stream to king
+        int96 _taxRate = _totalTaxMinusFee();
+        _taxRate == 0
+            ? newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx)
+            : newCtx = cashToken.updateFlowWithCtx(king, _taxRate, newCtx);
     }
 }

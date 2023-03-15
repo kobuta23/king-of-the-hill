@@ -89,7 +89,7 @@ before(async function () {
     const KingOfHill = await ethers.getContractFactory("KingOfHill", admin)
     hill = await KingOfHill.deploy(
         daix.address,  // cashToken
-        army.address,  // gameToken
+        army.address,  // armyToken
         (1e10).toString() // decay
     )
     hill.name = "hill "
@@ -212,7 +212,7 @@ describe("kingmakers", async function () {
             console.log("caught smth, ");
         }
 
-        await pass1week();
+        await pass1week(); 
         let x,y;
         x = Number(await daix.netFlow(hill)) * 86400 * 7;
         y = Number(await daix.bal(hill));
@@ -223,7 +223,7 @@ describe("kingmakers", async function () {
 
     
 
-    it.only("check the treasure and taxflow move to new king", async function () {
+    it("check the treasure and taxflow move to new king", async function () {
         //alice streams cash to the hill
         op = await daix.createFlow({
             receiver: hill.address,
@@ -234,21 +234,22 @@ describe("kingmakers", async function () {
             await op.exec(bob);
             await op.exec(carol);
         } catch (e){
-            console.log("caught smth, ");
+            console.log("caught smth");
         }
         await pass1week();
         balBefore = Number(await daix.bal(hill));
         assert.isAbove(balBefore, 0, "treasure not accumulating");
-        op = await army.createFlow({
+        op = await army.approve({
             receiver: hill.address,
-            flowRate: "1000000000"
-        });
+            amount: "1000000000"
+        })
         aliceBeforeNetFlow = Number(await daix.netFlow(alice));
         try{
             await op.exec(alice)
         } catch (e){
-            console.log("alice couldn't become king... ")
+            console.log("alice couldn't approve... ")
         }
+        op = await hill.connect(alice).claim("1000000000");
         aliceAfterNetFlow = Number(await daix.netFlow(alice));
         console.log(aliceBeforeNetFlow, " vs ", aliceAfterNetFlow); 
         assert.isAbove(aliceAfterNetFlow, aliceBeforeNetFlow, "stream not redirected properly");
@@ -261,6 +262,23 @@ describe("kingmakers", async function () {
 
     
 });
+/*describe("fuzzing", async function () {
+    it("tries a bunch of random scenarios", async function () {
+        //alice streams cash to the hill
+        players = [alice, bob, carol, david];
+
+        for(let i=0;i<20;i++){
+            // set up random action taker
+            // 1. Open a stream of DAIx
+            // 2. Check if can be 
+
+
+            // invariant checks
+
+            // 
+        }
+    });
+});*/
 
 async function logBals(token, users){
     console.log(`${await token.symbol({providerOrSigner: alice})} BALANCES:`)

@@ -18,19 +18,10 @@ module.exports = {
             runs: 1000
         }
     },
-    // UNCOMMENT WHEN RUNNING SCRIPTS
     networks: {
         hardhat: {
             blockGasLimit: 100000000
         }
-        // goerli: {
-        //     url: `${process.env.GOERLI_URL}`,
-        //     accounts: [
-        //         `${process.env.BORROWER_PRIVATE_KEY}`,
-        //         `${process.env.EMPLOYER_PRIVATE_KEY}`,
-        //         `${process.env.LENDER_PRIVATE_KEY}`
-        //     ]
-        // }
     },
     namedAccounts: {
         deployer: 0
