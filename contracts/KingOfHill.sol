@@ -35,6 +35,9 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
     uint256 immutable initialTime;
     int96 immutable initialRate;
 
+    /// @notice the amount of tax which remains in the contract as trasure
+    int96 public immutable treasureRate;
+
     /// @notice the rate of decay of the exchange rate, expressed in wei/second.
     int96 public decay;
 
@@ -62,6 +65,7 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         decay = _decay;
         initialTime = block.timestamp;
         king = msg.sender;
+        treasureRate = 1000; // 10% treasure fee
 
         bytes32 erc777TokensRecipientHash = keccak256("ERC777TokensRecipient");
         _ERC1820_REG.setInterfaceImplementer(address(this), erc777TokensRecipientHash, address(this));
@@ -93,7 +97,7 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
 
     function _totalTaxMinusFee() internal view returns (int96){
         int96 totalInflow = cashToken.getNetFlowRate(address(this)) + cashToken.getFlowRate(address(this), king);
-        return totalInflow * 90 / 100; // hardcoding 10% treasure collection
+        return totalInflow - (totalInflow * treasureRate / 10000); // treasureRate defines the amount kept in contract
     }
 
     // ---------------------------------------------------------------------------------------------
