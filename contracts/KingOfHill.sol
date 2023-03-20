@@ -18,6 +18,10 @@ import "hardhat/console.sol";
 /// @author Perthi
 contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
 
+    // ---------------------------------------------------------------------------------------------
+    // EVENTS
+    event HailNewKing(address king, uint256 army);
+
     /// @notice Importing the SuperToken Library to make working with streams easy.
     using SuperTokenV1Library for ISuperToken;
     // ---------------------------------------------------------------------------------------------
@@ -42,26 +46,28 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
     int96 public decay;
 
     /// @notice the step in the army auction. How much bigger than previous should it be?
-    uint256 public STEP;
+    uint256 public step;
 
     /// @notice the current king of the hill
     address public king;
     uint256 public army;
 
     constructor(
-        ISuperToken _cashToken, // super token to be used in borrowing
-        ISuperToken _armyToken, // super token to be used in borrowing
-        int96 _decay
+        ISuperToken _cashToken,
+        ISuperToken _armyToken,
+        int96 _decay,
+        uint256 _step
     ) SuperAppBaseFlow(
         ISuperfluid(_cashToken.getHost()), 
         true, 
         true, 
         true
     ) {
+        require(_decay >= 0, "decay must be positive");
         armyToken = _armyToken;
         cashToken = _cashToken;
         initialRate = 1e18;
-        STEP = 0; 
+        step = _step;
         decay = _decay;
         initialTime = block.timestamp;
         king = msg.sender;
@@ -69,29 +75,31 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
 
         bytes32 erc777TokensRecipientHash = keccak256("ERC777TokensRecipient");
         _ERC1820_REG.setInterfaceImplementer(address(this), erc777TokensRecipientHash, address(this));
+
+        _acceptedSuperTokens[_cashToken] = true;
     }
 
     // ---------------------------------------------------------------------------------------------
     // UTILITY FUNCTIONS
     // ---------------------------------------------------------------------------------------------
 
-    function taxRate() public returns (int96){
+    function taxRate() public view returns (int96){
         return cashToken.getFlowRate(address(this), king);
     }
 
-    function _rate() internal returns (int96){
+    function _rate() internal view returns (int96){
         return initialRate - int96(int256(block.timestamp - initialTime)) * decay;
     }
 
-    function rate() public returns (int96) {
+    function rate() public view returns (int96) {
         return _rate();
     }
 
-    function rate(address user) public returns (int96){
+    function rate(address user) public view returns (int96) {
         return armyToken.getFlowRate(address(this), user) / cashToken.getFlowRate(user, address(this));
     }
 
-    function armyFlowRate(int96 cashFlowRate) internal returns (int96) {
+    function armyFlowRate(int96 cashFlowRate) public view returns (int96) {
         return cashFlowRate * _rate() / 1e18;
     }
 
@@ -127,16 +135,20 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         // user sends army to the hill (armyToken)
         // if their army is bigger they become king
         // claim treasure and ongoing taxes
-        require(newArmy > (army + STEP), "send more money");
+        require(newArmy > (army + step), "send bigger army");
+        // set new army to protect hill
+        army = newArmy;
         // replace the king
         int96 cashOutflow = cashToken.getFlowRate(address(this), king);
-        cashToken.deleteFlow(address(this), king);
-        cashToken.createFlow(newKing, cashOutflow);
-
+        if(cashOutflow > 0) {
+            cashToken.deleteFlow(address(this), king);
+            cashToken.createFlow(newKing, cashOutflow);
+        }
         // send newKing the treasure
         cashToken.transfer(newKing, cashToken.balanceOf(address(this)));
         // crown new king
         king = newKing;
+        emit HailNewKing(king, newArmy);
     }
 
     // ---------------------------------------------------------------------------------------------
