@@ -2,21 +2,14 @@
 pragma solidity >=0.8.0;
 
 import {ISuperfluid, ISuperToken, ISuperApp, ISuperAgreement, SuperAppDefinitions} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
-
 import { SuperTokenV1Library } from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperTokenV1Library.sol";
-
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
-
 import {SuperAppBaseFlow} from "./SuperAppBaseFlow.sol";
-
 import { IERC1820Registry } from "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
 import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
-
 import "hardhat/console.sol";
 
-/// @title KingOfTheHill
-/// @author Perthi
-contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
+contract KingOfTheMountain is SuperAppBaseFlow, IERC777Recipient {
 
     // ---------------------------------------------------------------------------------------------
     // EVENTS
@@ -87,8 +80,10 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         return cashToken.getFlowRate(address(this), king);
     }
 
-    function _rate() internal view returns (int96){
-        return initialRate - int96(int256(block.timestamp - initialTime)) * decay;
+    //TODO: review
+    function _rate() internal view returns (int96) {
+        int96 calculatedRate = initialRate - int96(int256(block.timestamp - initialTime)) * decay;
+        return calculatedRate < 0 ? int96(0) : calculatedRate;
     }
 
     function rate() public view returns (int96) {
@@ -99,10 +94,15 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         return armyToken.getFlowRate(address(this), user) / cashToken.getFlowRate(user, address(this));
     }
 
-    function armyFlowRate(int96 cashFlowRate) public view returns (int96) {
+    function _armyFlowRate(int96 cashFlowRate) internal view returns (int96) {
         return cashFlowRate * _rate() / 1e18;
     }
 
+    function armyFlowRate(int96 cashFlowRate) public view returns (int96) {
+        return _armyFlowRate(cashFlowRate);
+    }
+
+    //TODO: review
     function _totalTaxMinusFee() internal view returns (int96){
         int96 totalInflow = cashToken.getNetFlowRate(address(this)) + cashToken.getFlowRate(address(this), king);
         return totalInflow - (totalInflow * treasureRate / 10000); // treasureRate defines the amount kept in contract
@@ -142,8 +142,13 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         int96 cashOutflow = cashToken.getFlowRate(address(this), king);
         if(cashOutflow > 0) {
             cashToken.deleteFlow(address(this), king);
+            //cashToken.createFlow(newKing, cashOutflow);
+        }
+        cashOutflow = _totalTaxMinusFee();
+        if(cashOutflow > 0) {
             cashToken.createFlow(newKing, cashOutflow);
         }
+
         // send newKing the treasure
         cashToken.transfer(newKing, cashToken.balanceOf(address(this)));
         // crown new king
@@ -162,8 +167,9 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         bytes calldata /*beforeData*/,
         bytes calldata ctx
     ) internal override returns (bytes memory newCtx) {
-        // user is streaming in cashToken, send him back armyToken
-        newCtx = armyToken.createFlowWithCtx(sender, armyFlowRate(cashToken.getFlowRate(sender,address(this))), ctx);
+        // user is streaming in cashToken, send him back armyToken.
+        // if _armyFlowRate returns zero we want to revert the operation.
+        newCtx = armyToken.createFlowWithCtx(sender, _armyFlowRate(cashToken.getFlowRate(sender,address(this))), ctx);
         // adjust (up) stream to king
         cashToken.getFlowRate(address(this), king) == 0
             ? newCtx = cashToken.createFlowWithCtx(king, _totalTaxMinusFee(), newCtx)
@@ -186,12 +192,18 @@ contract KingOfHill is SuperAppBaseFlow, IERC777Recipient {
         bytes calldata /*beforeData*/,
         bytes calldata ctx
     ) internal override returns (bytes memory newCtx) {
-        // user stopped streaming in cashToken, close the armyToken stream
-        newCtx = armyToken.deleteFlowWithCtx(address(this), sender, ctx);
-        // adjust (down) stream to king
-        int96 _taxRate = _totalTaxMinusFee();
-        _taxRate == 0
-            ? newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx)
-            : newCtx = cashToken.updateFlowWithCtx(king, _taxRate, newCtx);
+        newCtx = ctx;
+        // user stopped streaming in cashToken, close the armyToken stream if running
+        if(armyToken.getFlowRate(address(this), sender) != 0) {
+            newCtx = armyToken.deleteFlowWithCtx(address(this), sender, newCtx);
+        }
+        // only operate on stream if they are running
+        if(cashToken.getFlowRate(address(this), king) != 0) {
+            // adjust (down) stream to king
+            int96 _taxRate = _totalTaxMinusFee();
+            _taxRate == 0
+                ? newCtx = cashToken.deleteFlowWithCtx(address(this), king, newCtx)
+                : newCtx = cashToken.updateFlowWithCtx(king, _taxRate, newCtx);
+        }
     }
 }
