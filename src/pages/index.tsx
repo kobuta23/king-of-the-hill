@@ -1,6 +1,22 @@
 import Head from "next/head";
+import styled from "styled-components";
+import { useAccount } from "wagmi";
+import ConnectView from "../components/ConnectView";
+import GameView from "../components/GameView";
+
+const Layout = styled.main`
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+
+  > * {
+    flex: 1;
+  }
+`;
 
 export default function Home() {
+  const { address } = useAccount();
+
   return (
     <>
       <Head>
@@ -9,9 +25,7 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main>
-        <h1>King of the hill</h1>
-      </main>
+      <Layout>{address ? <GameView /> : <ConnectView />}</Layout>
     </>
   );
 }
