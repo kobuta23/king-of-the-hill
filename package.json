@@ -1,29 +1,42 @@
 {
-    "name": "superfluid-isa",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "test": "npx hardhat test --network hardhat",
-        "build": "npx hardhat compile"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "devDependencies": {
-        "@nomiclabs/hardhat-ethers": "^2.0.5",
-        "@nomiclabs/hardhat-waffle": "^2.0.3",
-        "@openzeppelin/test-helpers": "^0.5.15",
-        "chai": "^4.3.6",
-        "ethereum-waffle": "^3.4.0",
-        "ethers": "^5.6.0",
-        "hardhat": "^2.9.1"
-    },
-    "dependencies": {
-        "@openzeppelin/contracts": "^4.5.0",
-        "@superfluid-finance/ethereum-contracts": "1.5.0",
-        "@superfluid-finance/sdk-core": "^0.4.4",
-        "dotenv": "^16.0.0",
-        "graphql": "^16.3.0"
-    }
+  "name": "superfluid-isa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:app": "next dev",
+    "build:app": "next build",
+    "start:app": "next start",
+    "lint:app": "next lint",
+    "test": "npx hardhat test --network hardhat",
+    "build": "npx hardhat compile"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.5",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "chai": "^4.3.6",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.6.0",
+    "hardhat": "^2.9.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
+    "@superfluid-finance/ethereum-contracts": "1.5.0",
+    "@superfluid-finance/sdk-core": "^0.4.4",
+    "dotenv": "^16.0.0",
+    "graphql": "^16.3.0",
+    "@types/node": "18.15.5",
+    "@types/react": "18.0.28",
+    "@types/react-dom": "18.0.11",
+    "eslint": "8.36.0",
+    "eslint-config-next": "13.2.4",
+    "next": "13.2.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.0.2"
+  }
 }
