@@ -31,7 +31,10 @@ const HighscoreTable: FC<HighscoreTableProps> = ({}) => {
     chainId: network.id,
     filter: {
       token: network.armyToken.toLowerCase(),
-      account_not: "0x0000000000000000000000000000000000000000",
+      account_not_in: [
+        "0x0000000000000000000000000000000000000000",
+        network.hillAddress,
+      ],
     },
     pagination: {
       take: 5,

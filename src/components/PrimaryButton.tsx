@@ -1,3 +1,4 @@
+import { FC, PropsWithChildren } from "react";
 import styled, { css, keyframes } from "styled-components";
 
 const GradientAnimation = keyframes`
@@ -12,12 +13,21 @@ const GradientAnimation = keyframes`
 	}
 `;
 
-const PrimaryButton = styled.button<{ disabled?: boolean }>`
+const StyledPrimaryButton = styled.button<{
+  disabled?: boolean;
+  isLoading?: boolean;
+}>`
   font-weight: 500;
   font-size: 20px;
   line-height: 23px;
   border-radius: 100px;
   padding: 16px;
+
+  ${({ isLoading }) =>
+    isLoading &&
+    css`
+      cursor: initial;
+    `}
 
   ${({ disabled }) =>
     !disabled &&
@@ -39,10 +49,35 @@ const PrimaryButton = styled.button<{ disabled?: boolean }>`
   ${({ disabled, theme }) =>
     disabled &&
     css`
+      cursor: initial;
       font-size: 18px;
       background: ${theme.colors.border};
       font-weight: 400;
     `}
 `;
 
+interface PrimaryButtonProps extends PropsWithChildren {
+  isLoading?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}
+
+const noop = () => {};
+
+const PrimaryButton: FC<PrimaryButtonProps> = ({
+  onClick,
+  disabled,
+  isLoading,
+  children,
+}) => {
+  return (
+    <StyledPrimaryButton
+      onClick={isLoading ? noop : onClick}
+      isLoading={isLoading}
+      disabled={disabled}
+    >
+      {isLoading ? "Loading..." : children}
+    </StyledPrimaryButton>
+  );
+};
 export default PrimaryButton;

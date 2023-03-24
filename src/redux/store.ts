@@ -9,14 +9,17 @@ import {
   initializeTransactionTrackerSlice,
 } from "@superfluid-finance/sdk-redux";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { adHocRpcEndpoints } from "./apis/adHocRpcEndpoints";
 import { ensApi } from "./apis/ensApi.slice";
 
-export const rpcApi = initializeRpcApiSlice(
-  createApiWithReactHooks
-).injectEndpoints(allRpcEndpoints);
+export const rpcApi = initializeRpcApiSlice(createApiWithReactHooks)
+  .injectEndpoints(allRpcEndpoints)
+  .injectEndpoints(adHocRpcEndpoints);
+
 export const subgraphApi = initializeSubgraphApiSlice(
   createApiWithReactHooks
 ).injectEndpoints(allSubgraphEndpoints);
+
 export const transactionTracker = initializeTransactionTrackerSlice();
 
 export const reduxStore = configureStore({

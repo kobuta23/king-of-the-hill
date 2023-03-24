@@ -1,6 +1,6 @@
 import { getFramework } from "@superfluid-finance/sdk-redux";
 import { Signer } from "ethers";
-import { FC, useMemo } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   useAccount,
@@ -11,6 +11,11 @@ import {
 } from "wagmi";
 import network from "../configuration/network";
 import { useGameContext } from "../context/GameContext";
+import {
+  transactionByHashSelector,
+  useAccountTransactionsSelector,
+} from "../hooks/useAccountTransactions";
+import { rpcApi } from "../redux/store";
 import AddressName from "./AddressName";
 import Amount from "./Amount";
 import Flex from "./Flexbox";
@@ -48,12 +53,23 @@ const Sword = styled.img`
   bottom: -25%;
 `;
 
+const ArmySizeLabel = styled.p`
+  margin: 0;
+  font-size: 16px;
+  text-align: center;
+`;
 interface StatsCardProps {}
 
 const StatsCard: FC<StatsCardProps> = ({}) => {
   const { address } = useAccount();
   const { data: signer } = useSigner();
   const { army, step, king } = useGameContext();
+
+  const [hash, setHash] = useState<string | undefined>(undefined);
+
+  const pendingSendTransaction = useAccountTransactionsSelector(
+    transactionByHashSelector(hash)
+  );
 
   const { data: cashBalance } = useBalance({
     address,
@@ -86,13 +102,29 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
     const framework = await getFramework(network.id);
     const token = await framework.loadSuperToken(network.armyToken);
 
-    token
+    const result = await token
       .send({
         amount: armyNeeded.toString(),
         recipient: network.hillAddress,
       })
       .exec(signer);
+    setHash(result.hash);
   };
+
+  useEffect(() => {
+    if (
+      pendingSendTransaction &&
+      pendingSendTransaction.status === "Succeeded"
+    ) {
+      setHash(undefined);
+    }
+  }, [pendingSendTransaction]);
+
+  const isLoading = useMemo(
+    () =>
+      !!pendingSendTransaction && pendingSendTransaction.status === "Pending",
+    [pendingSendTransaction]
+  );
 
   return (
     <StyledStatsCard>
@@ -146,13 +178,33 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
         )}
       </Flex>
 
-      {isAlreadyKing && <div>You are the King!</div>}
+      {isAlreadyKing && (
+        <Flex direction="column" gap="12px">
+          {army && (
+            <ArmySizeLabel>
+              Your <b>$ARMY</b> size is{" "}
+              <b>
+                <Amount wei={army} />
+              </b>
+            </ArmySizeLabel>
+          )}
+          <PrimaryButton disabled>You are the King!</PrimaryButton>
+        </Flex>
+      )}
 
-      {armyNeeded && !isAlreadyKing && (
-        <>
-          {canBecomeKing ? (
-            <PrimaryButton onClick={becomeKing}>Become a King!</PrimaryButton>
-          ) : (
+      {!isAlreadyKing && (
+        <Flex direction="column" gap="12px">
+          {canBecomeKing && armyNeeded && (
+            <ArmySizeLabel>
+              You need{" "}
+              <b>
+                <Amount wei={armyNeeded} /> $ARMY
+              </b>{" "}
+              to become a <b>King</b>
+            </ArmySizeLabel>
+          )}
+
+          {!canBecomeKing && armyNeeded && (
             <PrimaryButton disabled>
               You need{" "}
               <b>
@@ -161,7 +213,15 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
               to become a <b>King</b>
             </PrimaryButton>
           )}
-        </>
+
+          {canBecomeKing && (
+            <>
+              <PrimaryButton onClick={becomeKing} isLoading={isLoading}>
+                Become a King!
+              </PrimaryButton>
+            </>
+          )}
+        </Flex>
       )}
     </StyledStatsCard>
   );

@@ -49,7 +49,6 @@ const SendCard: FC<SendCardProps> = ({}) => {
   const onStartStream = useCallback(
     (flowRateWei: string) => {
       if (!signer) return;
-      console.log({ flowRateWei });
       createFlow({
         chainId: network.id,
         flowRateWei,
