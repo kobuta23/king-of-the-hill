@@ -9,8 +9,9 @@ import {
 import { rpcApi } from "../redux/store";
 import Amount from "./Amount";
 import Paper from "./Paper";
-import SendStreamForm from "./SendStreamForm";
+import StreamForm from "./StreamForm";
 import { H6, Paragraph, SmallLabel } from "./Typography";
+import { skipToken } from "@reduxjs/toolkit/dist/query";
 
 const StyledSendCard = styled(Paper)`
   grid-area: send;
@@ -35,15 +36,29 @@ const SendCard: FC<SendCardProps> = ({}) => {
   const { address } = useAccount();
   const { data: signer } = useSigner();
 
+  const activeFlowRequest = rpcApi.useGetActiveFlowQuery(
+    address
+      ? {
+          chainId: network.id,
+          receiverAddress: network.hillAddress,
+          senderAddress: address,
+          tokenAddress: network.cashToken,
+        }
+      : skipToken
+  );
+
   const { data: cashBalance } = useBalance({
     address,
     token: network.cashToken,
   });
 
   const [createFlow, createFlowResult] = rpcApi.useFlowCreateMutation();
+  const [deleteFlow, deleteFlowResult] = rpcApi.useFlowDeleteMutation();
 
   const pendingSendTransaction = useAccountTransactionsSelector(
-    transactionByHashSelector(createFlowResult.data?.hash)
+    transactionByHashSelector(
+      createFlowResult.data?.hash || deleteFlowResult.data?.hash
+    )
   );
 
   const onStartStream = useCallback(
@@ -61,12 +76,28 @@ const SendCard: FC<SendCardProps> = ({}) => {
     },
     [signer, createFlow]
   );
+  const onCancelStream = useCallback(() => {
+    if (!signer) return;
+    deleteFlow({
+      chainId: network.id,
+      receiverAddress: network.hillAddress,
+      superTokenAddress: network.cashToken,
+      waitForConfirmation: true,
+      userDataBytes: undefined,
+      signer,
+    });
+  }, [signer, deleteFlow]);
 
   const isLoading = useMemo(
     () =>
       createFlowResult.isLoading ||
+      deleteFlowResult.isLoading ||
       (!!pendingSendTransaction && pendingSendTransaction.status === "Pending"),
-    [createFlowResult.isLoading, pendingSendTransaction]
+    [
+      createFlowResult.isLoading,
+      deleteFlowResult.isLoading,
+      pendingSendTransaction,
+    ]
   );
 
   return (
@@ -80,7 +111,12 @@ const SendCard: FC<SendCardProps> = ({}) => {
           </SmallLabel>
         )}
       </SmallCard>
-      <SendStreamForm isLoading={isLoading} onSubmit={onStartStream} />
+      <StreamForm
+        isLoading={isLoading}
+        onOpenStream={onStartStream}
+        onCancelStream={onCancelStream}
+        activeFlowRate={activeFlowRequest.data?.flowRateWei}
+      />
     </StyledSendCard>
   );
 };

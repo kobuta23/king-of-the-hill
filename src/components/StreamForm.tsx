@@ -1,8 +1,9 @@
 import { BigNumber } from "ethers";
-import { parseEther } from "ethers/lib/utils.js";
-import { ChangeEvent, FC, useCallback, useState } from "react";
+import { formatEther, parseEther } from "ethers/lib/utils.js";
+import { ChangeEvent, FC, useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { UnitOfTime } from "../utils/UnitOfTime";
+import Amount from "./Amount";
 import Paper from "./Paper";
 import PrimaryButton from "./PrimaryButton";
 import { Paragraph2, SmallLabel } from "./Typography";
@@ -33,13 +34,27 @@ const StyledInput = styled.input`
   font-size: 18px;
   font-weight: 400;
 `;
+const NOOP = () => {};
 
-interface SendStreamFormProps {
+const StyledFlowRate = styled.div`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 18px;
+  font-weight: 400;
+`;
+
+interface StreamFormProps {
   isLoading: boolean;
-  onSubmit: (flowRateWei: string) => void;
+  activeFlowRate?: string;
+  onOpenStream: (flowRateWei: string) => void;
+  onCancelStream: () => void;
 }
 
-const SendStreamForm: FC<SendStreamFormProps> = ({ isLoading, onSubmit }) => {
+const StreamForm: FC<StreamFormProps> = ({
+  activeFlowRate,
+  isLoading,
+  onOpenStream,
+  onCancelStream,
+}) => {
   const [flowRateEther, setFlowRateEther] = useState("");
 
   const onFlowRateChange = (e: ChangeEvent<HTMLInputElement>) =>
@@ -50,20 +65,30 @@ const SendStreamForm: FC<SendStreamFormProps> = ({ isLoading, onSubmit }) => {
       .div(UnitOfTime.Day)
       .toString();
 
-    onSubmit(flowRateWei);
-  }, [flowRateEther, onSubmit]);
+    onOpenStream(flowRateWei);
+  }, [flowRateEther, onOpenStream]);
 
+  const activeFlowRateWei = useMemo(() => {
+    if (!activeFlowRate) return null;
+    return BigNumber.from(activeFlowRate).mul(UnitOfTime.Day).toString();
+  }, [activeFlowRate]);
   return (
     <>
       <div>
         <Paragraph2>Flow Rate</Paragraph2>
         <InputWrapper>
-          <StyledInput
-            disabled={isLoading}
-            value={flowRateEther}
-            onChange={onFlowRateChange}
-            placeholder="0.0"
-          />
+          {activeFlowRateWei ? (
+            <StyledFlowRate>
+              <Amount wei={activeFlowRateWei} />
+            </StyledFlowRate>
+          ) : (
+            <StyledInput
+              disabled={isLoading}
+              value={flowRateEther}
+              onChange={onFlowRateChange}
+              placeholder="0.0"
+            />
+          )}
           <Divider />
           <SmallLabel>/ day</SmallLabel>
         </InputWrapper>
@@ -72,13 +97,19 @@ const SendStreamForm: FC<SendStreamFormProps> = ({ isLoading, onSubmit }) => {
       <Paragraph2 align="center">
         Price: <b>1 $CASH = 1 $ARMY</b>
       </Paragraph2>
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <PrimaryButton onClick={onStartStream}>Send Stream</PrimaryButton>
-      )}
+      <PrimaryButton
+        onClick={
+          isLoading ? NOOP : activeFlowRate ? onCancelStream : onStartStream
+        }
+      >
+        {isLoading
+          ? "Loading..."
+          : activeFlowRate
+          ? "Cancel Stream"
+          : "Send Stream"}
+      </PrimaryButton>
     </>
   );
 };
 
-export default SendStreamForm;
+export default StreamForm;
