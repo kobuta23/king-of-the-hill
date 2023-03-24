@@ -23,8 +23,8 @@ const GameGrid = styled(Grid)`
     "send send guide tax tax king"
     "stats stats highscore highscore highscore highscore";
 
-  column-gap: 16px;
-  row-gap: 16px;
+  column-gap: 20px;
+  row-gap: 20px;
 `;
 
 const GameLayout = styled.div`
@@ -42,10 +42,10 @@ const GameView: FC<GameViewProps> = ({}) => {
 
   return (
     <GameLayout>
-      <Flex direction="row">
+      {/* <Flex direction="row">
         <h4>{address}</h4>
         <PrimaryButton onClick={onDisconnect}>Disconnect</PrimaryButton>
-      </Flex>
+      </Flex> */}
 
       <GameGrid columns="repeat(6, 1fr)" rows="auto 16px 1fr 1fr auto">
         <HeaderCard />

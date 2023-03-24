@@ -16,6 +16,7 @@ const StyledHeaderCard = styled.div`
 const Crown = styled.img`
   width: 54px;
   display: block;
+  margin-bottom: 12px;
 `;
 
 const Chest = styled.img`
@@ -32,13 +33,17 @@ const Gold = styled.img`
   right: 5%;
 `;
 
+const StyledH2 = styled(H2)`
+  margin-top: -8px;
+`;
+
 interface HeaderCardProps {}
 
 const HeaderCard: FC<HeaderCardProps> = ({}) => (
   <StyledHeaderCard>
     <Crown src="/crown.svg" />
     <H3>Become the</H3>
-    <H2>King of the Hill</H2>
+    <StyledH2>King of the Hill</StyledH2>
     <Chest src="/chest.svg" />
     <Gold src="/gold.svg" />
   </StyledHeaderCard>

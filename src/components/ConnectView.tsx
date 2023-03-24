@@ -5,7 +5,7 @@ import PrimaryButton from "./PrimaryButton";
 import Typography, { H1, H2, Paragraph } from "./Typography";
 
 const StyledTitle = styled(H1)`
-  margin: -16px 0 0;
+  margin: -8px 0 0;
 `;
 
 const ConnectLayout = styled.div`

@@ -16,8 +16,10 @@ const theme: DefaultTheme = {
     primary: "#fff",
     secondary: "#C6BFEA",
     background: "#010021",
-    tableHead: "#ABA4CE",
+    border: "#544987",
+    opaque: "#ABA4CE",
     delimiter: "#544987",
+    smallPaperBg: "#2E2556",
   },
   layout: {
     width: "1600px",

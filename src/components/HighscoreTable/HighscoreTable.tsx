@@ -12,7 +12,7 @@ const StyledHighscoreTable = styled(Paper)`
   grid-area: highscore;
 `;
 
-const Delimiter = styled.div`
+const Divider = styled.div`
   background: ${({ theme }) => theme.colors.delimiter};
   height: 1px;
   width: calc(100% + 48px);
@@ -77,7 +77,7 @@ const HighscoreTable: FC<HighscoreTableProps> = ({}) => {
   return (
     <StyledHighscoreTable>
       <H6>Ranking</H6>
-      <Delimiter />
+      <Divider />
       <Table>
         <thead>
           <tr>

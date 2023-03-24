@@ -15,6 +15,7 @@ const GlobalStyle = createGlobalStyle`
   h3 {
     font-family: ${({ theme }) => theme.font.title};
     font-weight: 400;
+    margin: 0;
   }
 
   a {

@@ -3,17 +3,14 @@ import styled from "styled-components";
 
 export const H1 = styled.h1`
   font-size: 92px;
-  margin: 20px 0;
 `;
 
 export const H2 = styled.h2`
   font-size: 56px;
-  margin: 32px 0;
 `;
 
 export const H3 = styled.h3`
   font-size: 34px;
-  margin: 32px 0;
 `;
 
 export const H4 = styled.h4`
@@ -45,6 +42,18 @@ export const Label = styled.span`
   opacity: 0.4;
 `;
 
+export const SmallLabel = styled.span`
+  font-weight: 400;
+  font-size: 16px;
+  color: ${({ theme }) => theme.colors.opaque};
+`;
+
+export const Paragraph2 = styled.div<{ align?: string }>`
+  font-weight: 400;
+  font-size: 16px;
+  margin-bottom: 8px;
+  ${({ align }) => align && `text-align: ${align};`}
+`;
 export const Paragraph = styled.p`
   font-weight: 400;
   font-size: 20px;

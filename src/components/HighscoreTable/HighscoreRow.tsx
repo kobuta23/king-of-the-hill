@@ -1,7 +1,9 @@
 import { AccountTokenSnapshot } from "@superfluid-finance/sdk-core";
 import { FC } from "react";
 import AddressName from "../AddressName";
+import Flex from "../Flexbox";
 import FlowingBalance from "../FlowingBalance";
+import KnightAvatar from "../KnightAvatar";
 import RankBadge from "../RankBadge";
 import { TD } from "../Table";
 
@@ -24,7 +26,10 @@ const HighscoreRow: FC<HighscoreRowProps> = ({
         <RankBadge rank={rank} />
       </TD>
       <TD>
-        <AddressName address={account} />
+        <Flex direction="row" align="center" gap="8px">
+          <KnightAvatar rank={rank} />
+          <AddressName address={account} />
+        </Flex>
       </TD>
       <TD align="right">
         {goldTokenSnapshot && (

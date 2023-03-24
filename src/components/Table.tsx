@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const TH = styled.th<{ align?: string; width?: string }>`
-  color: ${({ theme }) => theme.colors.tableHead};
+  color: ${({ theme }) => theme.colors.opaque};
   font-style: normal;
   font-weight: 500;
   font-size: 18px;

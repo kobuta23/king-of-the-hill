@@ -10,8 +10,10 @@ declare module "styled-components" {
       primary: string;
       secondary: string;
       background: string;
-      tableHead: string;
+      border: string;
+      opaque: string;
       delimiter: string;
+      smallPaperBg: string;
     };
     layout: {
       width: string;
