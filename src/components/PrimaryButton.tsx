@@ -60,6 +60,7 @@ interface PrimaryButtonProps extends PropsWithChildren {
   isLoading?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  className?: string;
 }
 
 const noop = () => {};
@@ -69,9 +70,11 @@ const PrimaryButton: FC<PrimaryButtonProps> = ({
   disabled,
   isLoading,
   children,
+  className,
 }) => {
   return (
     <StyledPrimaryButton
+      className={className}
       onClick={isLoading ? noop : onClick}
       isLoading={isLoading}
       disabled={disabled}

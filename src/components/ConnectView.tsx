@@ -25,7 +25,7 @@ const ConnectCard = styled.div`
   row-gap: 32px;
 
   margin-top: 25vh;
-  max-width: 1000px;
+  max-width: 1020px;
   width: 100%;
   padding: 64px;
 
@@ -61,9 +61,11 @@ const ConnectView: FC<ConnectViewProps> = ({}) => {
         </div>
 
         <Paragraph>
-          Lorem ipsum dolor sit amet consectetur. Scelerisque odio diam
-          tincidunt ornare purus. Sit et aliquet metus neque diam nibh
-          porttitor. Enim elit porttitor nec nunc egestas magna pellentesque.
+          Get ready to conquer the Hill and become the ultimate King. Collect
+          taxes from other knights and reap the rewards, but watch out - the
+          competition is fierce and only the strongest can reign supreme.
+          <br />
+          Join now and take on the challenge to become the King of the Hill!
         </Paragraph>
 
         <ConnectButton.Custom>
