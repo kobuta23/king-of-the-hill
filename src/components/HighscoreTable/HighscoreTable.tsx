@@ -88,7 +88,7 @@ const HighscoreTable: FC<HighscoreTableProps> = ({}) => {
               Knight
             </TH>
             <TH width="200px" align="right">
-              $CASH Streamed
+              $CASH Balance
             </TH>
             <TH width="200px" align="right">
               $ARMY Balance
