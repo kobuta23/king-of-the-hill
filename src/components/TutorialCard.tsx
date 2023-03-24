@@ -27,12 +27,12 @@ const TutorialCard: FC<TutorialCardProps> = ({}) => {
       <TutorialList>
         <li>Stream $CASH.</li>
         <li>Receive $ARMY.</li>
-        <li>Fight with King and other Knights to raise the biggest Army.</li>
+        <li>Send your $ARMY to become King of Hill.</li>
         <li>
-          Become new ruling King and collect $CASH taxes from the Knights!
+          As the ruling King, collect $CASH taxes from all the Knights!
         </li>
       </TutorialList>
-      <Paragraph>$CASH price get’s lower by the block!</Paragraph>
+      <Paragraph>$ARMY gets more expensive every block!</Paragraph>
     </StyledTutorialCard>
   );
 };
