@@ -1,11 +1,13 @@
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import styled from "styled-components";
 import { useAccount, useBalance } from "wagmi";
 import network from "../configuration/network";
+import { useGameContext } from "../context/GameContext";
 import AddressName from "./AddressName";
 import Amount from "./Amount";
 import Flex from "./Flexbox";
 import Paper from "./Paper";
+import PrimaryButton from "./PrimaryButton";
 import { H6, H7, Paragraph } from "./Typography";
 
 const StyledStatsCard = styled(Paper)`
@@ -42,6 +44,7 @@ interface StatsCardProps {}
 
 const StatsCard: FC<StatsCardProps> = ({}) => {
   const { address } = useAccount();
+  const { army, step } = useGameContext();
 
   const { data: cashBalance } = useBalance({
     address,
@@ -52,6 +55,16 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
     address,
     token: network.armyToken,
   });
+
+  const armyNeeded = useMemo(() => {
+    if (!army || !step) return null;
+    return army.add(step);
+  }, [army, step]);
+
+  const canBecomeKing = useMemo(() => {
+    if (!armyNeeded || !armyBalance) return false;
+    return armyNeeded.lte(armyBalance.value);
+  }, [armyNeeded, armyBalance]);
 
   return (
     <StyledStatsCard>
@@ -104,6 +117,22 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
           </Flex>
         )}
       </Flex>
+
+      {armyNeeded && (
+        <>
+          {canBecomeKing ? (
+            <PrimaryButton>Become a King!</PrimaryButton>
+          ) : (
+            <PrimaryButton disabled>
+              You need{" "}
+              <b>
+                <Amount wei={armyNeeded} /> $ARMY
+              </b>{" "}
+              to become a <b>King</b>
+            </PrimaryButton>
+          )}
+        </>
+      )}
     </StyledStatsCard>
   );
 };

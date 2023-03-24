@@ -43,8 +43,8 @@ const GameView: FC<GameViewProps> = ({}) => {
   return (
     <GameLayout>
       {/* <Flex direction="row">
-        <h4>{address}</h4>
-        <PrimaryButton onClick={onDisconnect}>Disconnect</PrimaryButton>
+
+        <PrimaryButton >Disconnect</PrimaryButton>
       </Flex> */}
 
       <GameGrid columns="repeat(6, 1fr)" rows="auto 16px 1fr 1fr auto">
@@ -58,6 +58,9 @@ const GameView: FC<GameViewProps> = ({}) => {
         <StatsCard />
         <HighscoreTable />
       </GameGrid>
+
+      <h4>{address}</h4>
+      <div onClick={onDisconnect}>Disconnect</div>
     </GameLayout>
   );
 };

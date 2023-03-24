@@ -1,4 +1,5 @@
 import { AccountTokenSnapshot } from "@superfluid-finance/sdk-core";
+import { BigNumber } from "ethers";
 import {
   createContext,
   FC,
@@ -13,6 +14,8 @@ import { subgraphApi } from "../redux/store";
 
 interface GameContextValue {
   king?: string;
+  army?: BigNumber;
+  step?: BigNumber;
   treasureSnapshot: AccountTokenSnapshot | null | undefined;
 }
 const GameContext = createContext<GameContextValue>(null!);
@@ -24,14 +27,31 @@ const GameContextProvider: FC<PropsWithChildren> = ({ children }) => {
     functionName: "king",
   });
 
+  const { data: army } = useContractRead({
+    address: network.hillAddress,
+    abi: KingOfTheHillABI,
+    functionName: "army",
+  });
+
+  const { data: step } = useContractRead({
+    address: network.hillAddress,
+    abi: KingOfTheHillABI,
+    functionName: "step",
+  });
+
   const hillTreasureSnapshotQuery = subgraphApi.useAccountTokenSnapshotQuery({
     chainId: network.id,
     id: `${network.hillAddress}-${network.cashToken}`,
   });
 
   const contextValue = useMemo(() => {
-    return { king, treasureSnapshot: hillTreasureSnapshotQuery.data };
-  }, [king, hillTreasureSnapshotQuery.data]);
+    return {
+      king,
+      army,
+      step,
+      treasureSnapshot: hillTreasureSnapshotQuery.data,
+    };
+  }, [king, army, step, hillTreasureSnapshotQuery.data]);
 
   return (
     <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>
