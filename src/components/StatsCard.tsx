@@ -15,13 +15,15 @@ import {
   transactionByHashSelector,
   useAccountTransactionsSelector,
 } from "../hooks/useAccountTransactions";
-import { rpcApi } from "../redux/store";
+import { rpcApi, subgraphApi } from "../redux/store";
 import AddressName from "./AddressName";
 import Amount from "./Amount";
 import Flex from "./Flexbox";
 import Paper from "./Paper";
 import PrimaryButton from "./PrimaryButton";
 import { H6, H7, Paragraph } from "./Typography";
+import { skipToken } from "@reduxjs/toolkit/dist/query";
+import FlowingBalance from "./FlowingBalance";
 
 const StyledStatsCard = styled(Paper)`
   grid-area: stats;
@@ -69,6 +71,24 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
 
   const pendingSendTransaction = useAccountTransactionsSelector(
     transactionByHashSelector(hash)
+  );
+
+  const cashSnapshotResponse = subgraphApi.useAccountTokenSnapshotQuery(
+    address
+      ? {
+          chainId: network.id,
+          id: `${address}-${network.cashToken}`,
+        }
+      : skipToken
+  );
+
+  const armySnapshotResponse = subgraphApi.useAccountTokenSnapshotQuery(
+    address
+      ? {
+          chainId: network.id,
+          id: `${address}-${network.armyToken}`,
+        }
+      : skipToken
   );
 
   const { data: cashBalance } = useBalance({
@@ -155,23 +175,35 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
       </StatsHeading>
 
       <Flex direction="column" gap="4px">
-        {cashBalance && (
+        {cashSnapshotResponse.data && (
           <Flex direction="row" justify="between">
             <Paragraph>$CASH Balance:</Paragraph>
             <Paragraph>
               <b>
-                <Amount wei={cashBalance.value} />
+                <FlowingBalance
+                  flowRate={cashSnapshotResponse.data.totalNetFlowRate}
+                  balance={cashSnapshotResponse.data.balanceUntilUpdatedAt}
+                  balanceTimestamp={
+                    cashSnapshotResponse.data.updatedAtTimestamp
+                  }
+                />
               </b>
             </Paragraph>
           </Flex>
         )}
 
-        {armyBalance && (
+        {armySnapshotResponse.data && (
           <Flex direction="row" justify="between">
             <Paragraph>$ARMY Balance:</Paragraph>
             <Paragraph>
               <b>
-                <Amount wei={armyBalance.value} />
+                <FlowingBalance
+                  flowRate={armySnapshotResponse.data.totalNetFlowRate}
+                  balance={armySnapshotResponse.data.balanceUntilUpdatedAt}
+                  balanceTimestamp={
+                    armySnapshotResponse.data.updatedAtTimestamp
+                  }
+                />
               </b>
             </Paragraph>
           </Flex>

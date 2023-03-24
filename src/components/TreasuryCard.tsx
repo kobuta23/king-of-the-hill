@@ -1,10 +1,8 @@
 import { BigNumber } from "ethers";
 import { FC, useMemo } from "react";
 import styled from "styled-components";
-import { useBalance } from "wagmi";
 import network from "../configuration/network";
 import { subgraphApi } from "../redux/store";
-import Amount from "./Amount";
 import FlowingBalance from "./FlowingBalance";
 import Paper from "./Paper";
 import { H4, H6, H7 } from "./Typography";
@@ -19,11 +17,6 @@ const TreasuryCard: FC<TreasuryCardProps> = ({}) => {
   const cashSnapshotResponse = subgraphApi.useAccountTokenSnapshotQuery({
     chainId: network.id,
     id: `${network.hillAddress}-${network.cashToken}`,
-  });
-
-  const { data: cashBalance } = useBalance({
-    address: network.hillAddress,
-    token: network.cashToken,
   });
 
   const snapshot = useMemo(() => {
