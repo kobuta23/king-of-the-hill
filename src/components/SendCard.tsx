@@ -49,11 +49,11 @@ const SendCard: FC<SendCardProps> = ({}) => {
   const onStartStream = useCallback(
     (flowRateWei: string) => {
       if (!signer) return;
-
+      console.log({ flowRateWei });
       createFlow({
         chainId: network.id,
         flowRateWei,
-        receiverAddress: network.hillAddress, // "0x6375Ce0E3947AB31e2f19c3AA94ca6C23c2422A7"
+        receiverAddress: network.hillAddress,
         superTokenAddress: network.cashToken,
         waitForConfirmation: true,
         userDataBytes: undefined,

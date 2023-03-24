@@ -1,6 +1,14 @@
+import { getFramework } from "@superfluid-finance/sdk-redux";
+import { Signer } from "ethers";
 import { FC, useMemo } from "react";
 import styled from "styled-components";
-import { useAccount, useBalance } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  usePrepareSendTransaction,
+  useSendTransaction,
+  useSigner,
+} from "wagmi";
 import network from "../configuration/network";
 import { useGameContext } from "../context/GameContext";
 import AddressName from "./AddressName";
@@ -44,6 +52,7 @@ interface StatsCardProps {}
 
 const StatsCard: FC<StatsCardProps> = ({}) => {
   const { address } = useAccount();
+  const { data: signer } = useSigner();
   const { army, step, king } = useGameContext();
 
   const { data: cashBalance } = useBalance({
@@ -58,7 +67,7 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
 
   const armyNeeded = useMemo(() => {
     if (!army || !step) return null;
-    return army.add(step);
+    return army.add(step).add("1");
   }, [army, step]);
 
   const canBecomeKing = useMemo(() => {
@@ -70,6 +79,20 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
     () => address && king && address.toLowerCase() === king.toLowerCase(),
     [address, king]
   );
+
+  const becomeKing = async () => {
+    if (!armyNeeded || !signer) return;
+
+    const framework = await getFramework(network.id);
+    const token = await framework.loadSuperToken(network.armyToken);
+
+    token
+      .send({
+        amount: armyNeeded.toString(),
+        recipient: network.hillAddress,
+      })
+      .exec(signer);
+  };
 
   return (
     <StyledStatsCard>
@@ -128,7 +151,7 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
       {armyNeeded && !isAlreadyKing && (
         <>
           {canBecomeKing ? (
-            <PrimaryButton>Become a King!</PrimaryButton>
+            <PrimaryButton onClick={becomeKing}>Become a King!</PrimaryButton>
           ) : (
             <PrimaryButton disabled>
               You need{" "}

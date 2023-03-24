@@ -12,7 +12,7 @@ const ConnectLayout = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-image: url("/intro-background.png");
+  background-image: url("/intro-bg.png");
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
@@ -35,7 +35,7 @@ const ConnectCard = styled.div`
     rgba(255, 255, 255, 0.2) 18.53%,
     rgba(255, 255, 255, 0) 107.05%
   );
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(2px);
   border-radius: 20px;
   text-align: center;
 
