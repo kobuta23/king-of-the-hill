@@ -18,7 +18,7 @@ export const { chains: wagmiChains, provider: wagmiRpcProvider } =
             throw new Error("Invalid network! This should not happen");
           }
 
-          return { http: network.rpcUrls.superfluid.http[0] };
+          return { http: network.rpcUrls.alchemy.http[0] };
         },
       }),
     ]

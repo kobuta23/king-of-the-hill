@@ -4,8 +4,10 @@ const network = {
   ...chain.polygonMumbai,
   rpcUrls: {
     ...chain.polygonMumbai.rpcUrls,
-    superfluid: {
-      http: ["https://rpc-endpoints.superfluid.dev/polygon-mumbai"],
+    alchemy: {
+      http: [
+        "https://polygon-mumbai.g.alchemy.com/v2/alRa1D4oh5918OM3zmfCark4vdYjMbas",
+      ],
     },
   },
   subgraphUrl: `https://api.thegraph.com/subgraphs/name/superfluid-finance/protocol-v1-mumbai`,
