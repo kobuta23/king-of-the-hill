@@ -44,7 +44,7 @@ interface StatsCardProps {}
 
 const StatsCard: FC<StatsCardProps> = ({}) => {
   const { address } = useAccount();
-  const { army, step } = useGameContext();
+  const { army, step, king } = useGameContext();
 
   const { data: cashBalance } = useBalance({
     address,
@@ -65,6 +65,11 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
     if (!armyNeeded || !armyBalance) return false;
     return armyNeeded.lte(armyBalance.value);
   }, [armyNeeded, armyBalance]);
+
+  const isAlreadyKing = useMemo(
+    () => address && king && address.toLowerCase() === king.toLowerCase(),
+    [address, king]
+  );
 
   return (
     <StyledStatsCard>
@@ -118,7 +123,9 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
         )}
       </Flex>
 
-      {armyNeeded && (
+      {isAlreadyKing && <div>You are the King!</div>}
+
+      {armyNeeded && !isAlreadyKing && (
         <>
           {canBecomeKing ? (
             <PrimaryButton>Become a King!</PrimaryButton>
