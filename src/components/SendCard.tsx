@@ -56,9 +56,11 @@ const SendCard: FC<SendCardProps> = ({}) => {
   const [deleteFlow, deleteFlowResult] = rpcApi.useFlowDeleteMutation();
 
   const pendingSendTransaction = useAccountTransactionsSelector(
-    transactionByHashSelector(
-      createFlowResult.data?.hash || deleteFlowResult.data?.hash
-    )
+    transactionByHashSelector(createFlowResult.data?.hash)
+  );
+
+  const pendingDeleteTransaction = useAccountTransactionsSelector(
+    transactionByHashSelector(deleteFlowResult.data?.hash)
   );
 
   const onStartStream = useCallback(
@@ -76,6 +78,7 @@ const SendCard: FC<SendCardProps> = ({}) => {
     },
     [signer, createFlow]
   );
+
   const onCancelStream = useCallback(() => {
     if (!signer) return;
     deleteFlow({
@@ -92,11 +95,15 @@ const SendCard: FC<SendCardProps> = ({}) => {
     () =>
       createFlowResult.isLoading ||
       deleteFlowResult.isLoading ||
-      (!!pendingSendTransaction && pendingSendTransaction.status === "Pending"),
+      (!!pendingSendTransaction &&
+        pendingSendTransaction.status === "Pending") ||
+      (!!pendingDeleteTransaction &&
+        pendingDeleteTransaction.status === "Pending"),
     [
       createFlowResult.isLoading,
       deleteFlowResult.isLoading,
       pendingSendTransaction,
+      pendingDeleteTransaction,
     ]
   );
 

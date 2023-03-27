@@ -1,14 +1,8 @@
+import { skipToken } from "@reduxjs/toolkit/dist/query";
 import { getFramework } from "@superfluid-finance/sdk-redux";
-import { Signer } from "ethers";
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
-import {
-  useAccount,
-  useBalance,
-  usePrepareSendTransaction,
-  useSendTransaction,
-  useSigner,
-} from "wagmi";
+import { useAccount, useBalance, useSigner } from "wagmi";
 import network from "../configuration/network";
 import { useGameContext } from "../context/GameContext";
 import {
@@ -19,11 +13,10 @@ import { rpcApi, subgraphApi } from "../redux/store";
 import AddressName from "./AddressName";
 import Amount from "./Amount";
 import Flex from "./Flexbox";
+import FlowingBalance from "./FlowingBalance";
 import Paper from "./Paper";
 import PrimaryButton from "./PrimaryButton";
-import { H6, H7, Paragraph } from "./Typography";
-import { skipToken } from "@reduxjs/toolkit/dist/query";
-import FlowingBalance from "./FlowingBalance";
+import { H6, Paragraph } from "./Typography";
 
 const StyledStatsCard = styled(Paper)`
   grid-area: stats;
@@ -67,10 +60,11 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
   const { data: signer } = useSigner();
   const { army, step, king } = useGameContext();
 
-  const [hash, setHash] = useState<string | undefined>(undefined);
+  const [becomeKingTrigger, becomeKingResponse] =
+    rpcApi.useBecomeKingMutation();
 
-  const pendingSendTransaction = useAccountTransactionsSelector(
-    transactionByHashSelector(hash)
+  const pendingKingTransaction = useAccountTransactionsSelector(
+    transactionByHashSelector(becomeKingResponse.data?.hash)
   );
 
   const cashSnapshotResponse = subgraphApi.useAccountTokenSnapshotQuery(
@@ -90,11 +84,6 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
         }
       : skipToken
   );
-
-  const { data: cashBalance } = useBalance({
-    address,
-    token: network.cashToken,
-  });
 
   const { data: armyBalance } = useBalance({
     address,
@@ -116,34 +105,16 @@ const StatsCard: FC<StatsCardProps> = ({}) => {
     [address, king]
   );
 
-  const becomeKing = async () => {
+  const becomeKing = useCallback(() => {
     if (!armyNeeded || !signer) return;
-
-    const framework = await getFramework(network.id);
-    const token = await framework.loadSuperToken(network.armyToken);
-
-    const result = await token
-      .send({
-        amount: armyNeeded.toString(),
-        recipient: network.hillAddress,
-      })
-      .exec(signer);
-    setHash(result.hash);
-  };
-
-  useEffect(() => {
-    if (
-      pendingSendTransaction &&
-      pendingSendTransaction.status === "Succeeded"
-    ) {
-      setHash(undefined);
-    }
-  }, [pendingSendTransaction]);
+    becomeKingTrigger({ amount: armyNeeded.toString(), signer });
+  }, [armyNeeded, signer, becomeKingTrigger]);
 
   const isLoading = useMemo(
     () =>
-      !!pendingSendTransaction && pendingSendTransaction.status === "Pending",
-    [pendingSendTransaction]
+      becomeKingResponse.isLoading ||
+      (!!pendingKingTransaction && pendingKingTransaction.status === "Pending"),
+    [pendingKingTransaction, becomeKingResponse.isLoading]
   );
 
   return (

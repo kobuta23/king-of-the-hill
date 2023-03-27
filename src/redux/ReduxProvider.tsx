@@ -36,7 +36,7 @@ const ReduxProviderCore: FC<PropsWithChildren> = ({ children }) => {
         );
       });
     }
-  }, [signer]);
+  }, [signer, activeConnector, dispatch]);
 
   return <>{children}</>;
 };

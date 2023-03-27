@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { formatEther, parseEther } from "ethers/lib/utils.js";
+import { parseEther } from "ethers/lib/utils.js";
 import { ChangeEvent, FC, useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { UnitOfTime } from "../utils/UnitOfTime";
@@ -34,13 +34,14 @@ const StyledInput = styled.input`
   font-size: 18px;
   font-weight: 400;
 `;
-const NOOP = () => {};
 
 const StyledFlowRate = styled.div`
   color: ${({ theme }) => theme.colors.primary};
   font-size: 18px;
   font-weight: 400;
 `;
+
+const NOOP = () => {};
 
 interface StreamFormProps {
   isLoading: boolean;

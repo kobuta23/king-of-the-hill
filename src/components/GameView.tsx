@@ -1,14 +1,10 @@
-import { FC, useCallback } from "react";
+import { FC } from "react";
 import styled from "styled-components";
-import { useAccount, useDisconnect } from "wagmi";
 import ActiveKnightsCard from "./ActiveKnightsCard";
-import Flex from "./Flexbox";
 import Grid from "./Grid";
 import HeaderCard from "./HeaderCard";
 import HighscoreTable from "./HighscoreTable/HighscoreTable";
 import KingCard from "./KingCard";
-import Paper from "./Paper";
-import PrimaryButton from "./PrimaryButton";
 import SendCard from "./SendCard";
 import StatsCard from "./StatsCard";
 import TaxCard from "./TaxCard";
@@ -35,11 +31,6 @@ const GameLayout = styled.div`
 interface GameViewProps {}
 
 const GameView: FC<GameViewProps> = ({}) => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
-
-  const onDisconnect = useCallback(() => disconnect(), [disconnect]);
-
   return (
     <GameLayout>
       <GameGrid columns="repeat(6, 1fr)" rows="auto 16px 1fr 1fr auto">
@@ -53,9 +44,6 @@ const GameView: FC<GameViewProps> = ({}) => {
         <StatsCard />
         <HighscoreTable />
       </GameGrid>
-
-      <h4>{address}</h4>
-      <div onClick={onDisconnect}>Disconnect</div>
     </GameLayout>
   );
 };

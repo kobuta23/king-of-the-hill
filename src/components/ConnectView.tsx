@@ -57,7 +57,7 @@ const ConnectView: FC<ConnectViewProps> = ({}) => {
       <ConnectCard>
         <div>
           <H2>Become the</H2>
-          <StyledTitle>King of a Hill</StyledTitle>
+          <StyledTitle>King of the Hill</StyledTitle>
         </div>
 
         <Paragraph>
