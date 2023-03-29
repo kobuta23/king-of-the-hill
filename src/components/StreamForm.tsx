@@ -2,6 +2,7 @@ import { BigNumber } from "ethers";
 import { parseEther } from "ethers/lib/utils.js";
 import { ChangeEvent, FC, useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
+import { useGameContext } from "../context/GameContext";
 import { UnitOfTime } from "../utils/UnitOfTime";
 import Amount from "./Amount";
 import Paper from "./Paper";
@@ -58,6 +59,8 @@ const StreamForm: FC<StreamFormProps> = ({
 }) => {
   const [flowRateEther, setFlowRateEther] = useState("");
 
+  const { armyFlowRate } = useGameContext();
+
   const onFlowRateChange = (e: ChangeEvent<HTMLInputElement>) =>
     setFlowRateEther(e.target.value);
 
@@ -73,6 +76,7 @@ const StreamForm: FC<StreamFormProps> = ({
     if (!activeFlowRate) return null;
     return BigNumber.from(activeFlowRate).mul(UnitOfTime.Day).toString();
   }, [activeFlowRate]);
+
   return (
     <>
       <div>
@@ -95,9 +99,15 @@ const StreamForm: FC<StreamFormProps> = ({
         </InputWrapper>
       </div>
 
-      <Paragraph2 align="center">
-        Price: <b>1 $CASH = 1 $ARMY</b>
-      </Paragraph2>
+      {armyFlowRate && (
+        <Paragraph2 align="center">
+          Price:{" "}
+          <b>
+            1 $CASH = <Amount wei={armyFlowRate.toString()} disableRounding />{" "}
+            $ARMY
+          </b>
+        </Paragraph2>
+      )}
       <PrimaryButton
         onClick={
           isLoading ? NOOP : activeFlowRate ? onCancelStream : onStartStream

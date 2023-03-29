@@ -5,6 +5,7 @@ import {
   FC,
   PropsWithChildren,
   useContext,
+  useEffect,
   useMemo,
 } from "react";
 import { useContractRead } from "wagmi";
@@ -17,6 +18,7 @@ interface GameContextValue {
   army?: BigNumber;
   decay?: BigNumber;
   step?: BigNumber;
+  armyFlowRate?: BigNumber;
   treasureSnapshot: AccountTokenSnapshot | null | undefined;
 }
 const GameContext = createContext<GameContextValue>(null!);
@@ -26,6 +28,16 @@ const GameContextProvider: FC<PropsWithChildren> = ({ children }) => {
   const armyRequest = rpcApi.useGetArmySizeQuery();
   const decayRequest = rpcApi.useGetDecayQuery();
   const stepRequest = rpcApi.useGetStepQuery();
+  const [armyFlowRateTrigger, armyFlowRateRequest] =
+    rpcApi.useLazyGetArmyFlowRateQuery();
+
+  useEffect(() => {
+    armyFlowRateTrigger();
+
+    setInterval(() => {
+      armyFlowRateTrigger();
+    }, 10000);
+  }, [armyFlowRateTrigger]);
 
   const hillTreasureSnapshotQuery = subgraphApi.useAccountTokenSnapshotQuery({
     chainId: network.id,
@@ -38,6 +50,9 @@ const GameContextProvider: FC<PropsWithChildren> = ({ children }) => {
       army: armyRequest.data ? BigNumber.from(armyRequest.data) : undefined,
       decay: decayRequest.data ? BigNumber.from(decayRequest.data) : undefined,
       step: stepRequest.data ? BigNumber.from(stepRequest.data) : undefined,
+      armyFlowRate: armyFlowRateRequest.data
+        ? BigNumber.from(armyFlowRateRequest.data)
+        : undefined,
       treasureSnapshot: hillTreasureSnapshotQuery.data,
     };
   }, [
@@ -45,6 +60,7 @@ const GameContextProvider: FC<PropsWithChildren> = ({ children }) => {
     armyRequest.data,
     decayRequest.data,
     stepRequest.data,
+    armyFlowRateRequest.data,
     hillTreasureSnapshotQuery.data,
   ]);
 

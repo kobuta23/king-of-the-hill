@@ -8,6 +8,7 @@ import {
 } from "@superfluid-finance/sdk-redux";
 import { readContract } from "@wagmi/core";
 import { BigNumber, Signer } from "ethers";
+import { parseEther } from "ethers/lib/utils.js";
 
 export interface Web3FlowInfo {
   updatedAtTimestamp: number;
@@ -157,6 +158,27 @@ export const adHocRpcEndpoints = {
 
         return {
           data: step.toString(),
+        };
+      },
+      providesTags: (_result, _error) => [
+        {
+          type: "GENERAL",
+          id: network.id,
+        },
+      ],
+    }),
+
+    getArmyFlowRate: builder.query<string, void>({
+      queryFn: async () => {
+        const armyFlowRate = await readContract({
+          address: network.hillAddress,
+          abi: KingOfTheHillABI,
+          functionName: "armyFlowRate",
+          args: [BigNumber.from(parseEther("1"))],
+        });
+
+        return {
+          data: armyFlowRate.toString(),
         };
       },
       providesTags: (_result, _error) => [
