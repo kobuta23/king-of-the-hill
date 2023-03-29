@@ -24,6 +24,25 @@ const KingOfTheHillABI = [
       {
         indexed: false,
         internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "int96",
+        name: "armyFlowRate",
+        type: "int96",
+      },
+    ],
+    name: "BuildingArmy",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
         name: "king",
         type: "address",
       },
