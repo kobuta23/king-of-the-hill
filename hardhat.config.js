@@ -1,6 +1,11 @@
+require("dotenv").config();
+require("@nomiclabs/hardhat-ethers");
+require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle")
-require("@nomiclabs/hardhat-ethers")
-require("dotenv").config()
+require("hardhat-deploy");
+require("hardhat/config");
+require("./deploy/deploy_superapp");
+
 
 task("accounts", "Prints the list of accounts", async (_, hre) => {
     const accounts = await hre.ethers.getSigners()
@@ -19,11 +24,23 @@ module.exports = {
         }
     },
     networks: {
-        hardhat: {
-            blockGasLimit: 100000000
-        }
+        localhost: {
+            url: "http://127.0.0.1:8545/",
+            chainId: 31337,
+        },
+        mumbai: {
+            url: process.env.MUMBAI_URL || "",
+            accounts:
+                process.env.MUMBAI_PRIVATE_KEY !== undefined ? [process.env.MUMBAI_PRIVATE_KEY] : [],
+        },
     },
+
     namedAccounts: {
-        deployer: 0
-    }
+        deployer: {
+            default: 0,
+        },
+    },
+    etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY,
+    },
 }

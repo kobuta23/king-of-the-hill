@@ -9,11 +9,12 @@ import { IERC1820Registry } from "@openzeppelin/contracts/utils/introspection/IE
 import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import "hardhat/console.sol";
 
-contract KingOfTheMountain is SuperAppBaseFlow, IERC777Recipient {
+contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
 
     // ---------------------------------------------------------------------------------------------
     // EVENTS
     event HailNewKing(address king, uint256 army);
+    event BuildingArmy(address account, int96 armyFlowRate);
 
     /// @notice Importing the SuperToken Library to make working with streams easy.
     using SuperTokenV1Library for ISuperToken;
@@ -95,7 +96,11 @@ contract KingOfTheMountain is SuperAppBaseFlow, IERC777Recipient {
     }
 
     function _armyFlowRate(int96 cashFlowRate) internal view returns (int96) {
-        return cashFlowRate * _rate() / 1e18;
+        uint256 _cashFlowRate = uint96(cashFlowRate);
+        uint256 _rate = uint96(_rate());
+        uint256 armyFlowRate = uint256(_cashFlowRate * _rate) / 1e18;
+        require(armyFlowRate <= uint256(uint96(type(int96).max)), "armyFlowRate overflow");
+        return int96(int256(armyFlowRate));
     }
 
     function armyFlowRate(int96 cashFlowRate) public view returns (int96) {
@@ -135,7 +140,7 @@ contract KingOfTheMountain is SuperAppBaseFlow, IERC777Recipient {
         // user sends army to the hill (armyToken)
         // if their army is bigger they become king
         // claim treasure and ongoing taxes
-        require(newArmy > (army + step), "send bigger army");
+        require(newArmy >= (army + step), "send bigger army");
         // set new army to protect hill
         army = newArmy;
         // replace the king
@@ -167,13 +172,16 @@ contract KingOfTheMountain is SuperAppBaseFlow, IERC777Recipient {
         bytes calldata /*beforeData*/,
         bytes calldata ctx
     ) internal override returns (bytes memory newCtx) {
+        newCtx = ctx;
         // user is streaming in cashToken, send him back armyToken.
         // if _armyFlowRate returns zero we want to revert the operation.
-        newCtx = armyToken.createFlowWithCtx(sender, _armyFlowRate(cashToken.getFlowRate(sender,address(this))), ctx);
+        int96 armyFlowRate = _armyFlowRate(superToken.getFlowRate(sender, address(this)));
+        newCtx = armyToken.createFlowWithCtx(sender, armyFlowRate, ctx);
         // adjust (up) stream to king
         cashToken.getFlowRate(address(this), king) == 0
             ? newCtx = cashToken.createFlowWithCtx(king, _totalTaxMinusFee(), newCtx)
             : newCtx = cashToken.updateFlowWithCtx(king, _totalTaxMinusFee(), newCtx);
+        emit BuildingArmy(sender, armyFlowRate);
     }
 
     function afterFlowUpdated(
