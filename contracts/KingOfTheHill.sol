@@ -5,11 +5,10 @@ import {ISuperfluid, ISuperToken, ISuperApp, ISuperAgreement, SuperAppDefinition
 import { SuperTokenV1Library } from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperTokenV1Library.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import {SuperAppBaseFlow} from "./SuperAppBaseFlow.sol";
-import { IERC1820Registry } from "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
-import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
+import { IArmyUnits } from "./interfaces/IArmyUnits.sol";
 import "hardhat/console.sol";
 
-contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
+contract KingOfTheHill is SuperAppBaseFlow {
 
     // ---------------------------------------------------------------------------------------------
     // EVENTS
@@ -21,10 +20,6 @@ contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
     // ---------------------------------------------------------------------------------------------
     // STORAGE & IMMUTABLES
 
-    /// @notice Constant used for ERC777.
-
-    IERC1820Registry constant internal _ERC1820_REG = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
-
     /// @notice Token coming in and token going out
     ISuperToken public immutable cashToken;
     ISuperToken public immutable armyToken;
@@ -33,11 +28,8 @@ contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
     uint256 immutable initialTime;
     int96 immutable initialRate;
 
-    /// @notice the amount of tax which remains in the contract as trasure
+    /// @notice the amount of tax which remains in the contract as treasure
     int96 public immutable treasureRate;
-
-    /// @notice the rate of decay of the exchange rate, expressed in wei/second.
-    int96 public decay;
 
     /// @notice the step in the army auction. How much bigger than previous should it be?
     uint256 public step;
@@ -46,29 +38,30 @@ contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
     address public king;
     uint256 public army;
 
+    // army units contract
+    IArmyUnits public immutable armyUnitsContract;
+
     constructor(
         ISuperToken _cashToken,
         ISuperToken _armyToken,
-        int96 _decay,
-        uint256 _step
+        uint256 _step,
+        IArmyUnits _armyUnitsContract
     ) SuperAppBaseFlow(
         ISuperfluid(_cashToken.getHost()), 
         true, 
         true, 
         true
     ) {
-        require(_decay >= 0, "decay must be positive");
+        // TODO: add checks for _cashToken, _armyToken, _armyUnitsContract
+
         armyToken = _armyToken;
         cashToken = _cashToken;
         initialRate = 1e18;
         step = _step;
-        decay = _decay;
         initialTime = block.timestamp;
         king = msg.sender;
         treasureRate = 1000; // 10% treasure fee
-
-        bytes32 erc777TokensRecipientHash = keccak256("ERC777TokensRecipient");
-        _ERC1820_REG.setInterfaceImplementer(address(this), erc777TokensRecipientHash, address(this));
+        armyUnitsContract = _armyUnitsContract;
 
         _acceptedSuperTokens[_cashToken] = true;
     }
@@ -83,7 +76,7 @@ contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
 
     //TODO: review
     function _rate() internal view returns (int96) {
-        int96 calculatedRate = initialRate - int96(int256(block.timestamp - initialTime)) * decay;
+        int96 calculatedRate = initialRate - int96(int256(block.timestamp - initialTime));
         return calculatedRate < 0 ? int96(0) : calculatedRate;
     }
 
@@ -116,20 +109,6 @@ contract KingOfTheHill is SuperAppBaseFlow, IERC777Recipient {
     // ---------------------------------------------------------------------------------------------
     // BECOMING KING
     // ---------------------------------------------------------------------------------------------
-
-    // IERC777Recipient
-    function tokensReceived(
-        address /*operator*/,
-        address from,
-        address /*to*/,
-        uint256 amount,
-        bytes calldata /*userData*/,
-        bytes calldata /*operatorData*/
-    ) override external {
-        // if it's not a SuperToken, something will revert along the way
-        require(ISuperToken(msg.sender) == armyToken, "Please send the right token!");
-        _claim(from, amount);
-    }
 
     function claim(uint256 amount) public{
         armyToken.transferFrom(msg.sender, address(this), amount);
