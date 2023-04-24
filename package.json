@@ -48,6 +48,7 @@
     "react-redux": "^8.0.5",
     "styled-components": "^5.3.9",
     "typescript": "5.0.2",
-    "wagmi": "^0.12.6"
+    "wagmi": "^0.12.6",
+    "hardhat-deploy": "^0.11.25"
   }
 }

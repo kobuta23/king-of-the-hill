@@ -38,3 +38,6 @@ artifacts
 .idea
 
 cache
+.DS_Store
+
+.env
