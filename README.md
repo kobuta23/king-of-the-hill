@@ -1,19 +1,11 @@
-# king-of-the-hill
+# shogun
 
-### Rules of the game
-- Users stream `cashToken` to the Contract (*the Hill*) to receive a stream of `armyToken`. This stream can't be updated.
-- The flowrate of the `armyToken` stream will be determined by a `rate` which decreases by `decay` every second. This means your current rate is always the highest you'll ever get.
-- Users call `armyToken.send()` with an amount higher than `army` to `claim` the title of `king`
-- When a user is the `king` they receive a `taxRate` stream representing almost all the incoming flows from users buying `armyToken`
-- Part of the fees are accumulated in the contract, as defined by `treasureRate`
-- When a new king `claim`s the `king` role, they take the accumulated `treasure` as an immediate reward, and start receiving the `taxRate` stream
+## Notes
 
-### Development
-
-#### 1. Install packages
-`npm install`
-
-#### 2. Run the app
-`npm run app:dev`
-
-Now you should be able to open the app in your browser at `http://localhost:3000`
+- Superfluid Protocol: The contract uses the Superfluid protocol for money streaming. Two streams are created, streamInToken and streamOutToken, which are tokens being streamed in and out of the contract
+- Tax Mechanism: The contract has a mechanism to distribute taxes amongst different entities: king, fee collector, and treasury. The distribution rates are fixed: 50% for king, 20% for fee collector, and the rest for the treasury.
+- Attacking Mechanic: Users can attack the current king. If the total attack power of the user is greater than the total defense power of the king, the user becomes the new king. All tokens of the old king are transferred to him, and all of the attacker's tokens are transferred to the contract. Also, the previous flow of tokens to the old king is deleted, and a new flow is created to the new king.
+- Stream Creation, Update, and Deletion: The contract allows the creation, update, and deletion of streams. However, it disallows stream updates by reverting any transaction that attempts to update the stream.
+- Cooldown Mechanism: There is a cooldown mechanism in place, which prevents a user from creating a new stream if they're within the cooldown period.
+- ERC1155 Compatibility: The contract inherits from the ERC1155Holder contract from the OpenZeppelin library, which allows it to interact with ERC1155 tokens.
+- Flow Rate Restrictions: The contract ensures that the inflow rate is within a specified minimum and maximum rate
